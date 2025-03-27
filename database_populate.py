@@ -18,10 +18,12 @@ mycursor.execute("USE fantasymbeciles;")
 
 mycursor.execute("SET autocommit=0;")
 
-insert_st = ["""INSERT INTO teams(team_name,game) 
+insert_st = ["""INSERT INTO teams(team_name,game,team_league,team_country) 
              VALUES(
              %(team_name)s,
-             %(game)s)""",
+             %(game)s,
+             %(team_league)s,
+             %(team_country)s)""",
             """INSERT INTO players(name,nickname,country_code,age,height,average,global_position,value,wage,best_foot,weak_foot_5stars,heading,jump,long_pass,short_pass,dribbling,acceleration,speed,shot_power,long_shot,stamina,defense,interception,team_id_fk,game) 
             VALUES ( 
             %(name)s,
@@ -72,7 +74,7 @@ for game in game_name:
             df["player_id_fk"] = df["player_id_fk"] + 1 + file_order["players"]
 
         if file == "teams":
-            df = df[["team_name", "game"]]
+            df = df[["team_name", "game", "team_league", "team_country"]]
             df.to_csv(f'fifaScrapper/output/{game}/teams.csv', index=False, sep=',')
 
         df = df.replace({np.nan: None})
