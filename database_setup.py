@@ -278,7 +278,8 @@ creation_queries = ["CREATE TABLE teams (ID INT NOT NULL AUTO_INCREMENT, team_na
                         AVG(CASE 
                                 WHEN pa.average >= (tb.team_avg - tb.team_std) 
                                 THEN pa.average 
-                            END) AS position_avg_std
+                            END) AS position_avg_std,
+                        t.game
                     FROM player_assignments pa
                     JOIN teams t ON pa.team_id_fk = t.id
                     LEFT JOIN leagues l ON pa.league_id_fk = l.id
