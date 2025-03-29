@@ -273,12 +273,19 @@ creation_queries = ["CREATE TABLE teams (ID INT NOT NULL AUTO_INCREMENT, team_na
                         l.league_name AS league_name,
                         tb.team_avg,
                         fa.team_avg_std,
-                        pa.global_position,
-                        AVG(pa.average) AS position_avg,
-                        AVG(CASE 
-                                WHEN pa.average >= (tb.team_avg - tb.team_std) 
-                                THEN pa.average 
-                            END) AS position_avg_std,
+                        
+                        -- Estadísticas PIVOTEADAS por posición:
+                        AVG(CASE WHEN pa.global_position = 'Portero' THEN pa.average END) AS GK_avg,
+                        AVG(CASE WHEN pa.global_position = 'Defensa' THEN pa.average END) AS DEF_avg,
+                        AVG(CASE WHEN pa.global_position = 'Centrocampista' THEN pa.average END) AS MID_avg,
+                        AVG(CASE WHEN pa.global_position = 'Delantero' THEN pa.average END) AS FWD_avg,
+
+                        -- Media solo de los jugadores que cumplen el filtro de desviación estándar
+                        AVG(CASE WHEN pa.global_position = 'Portero' AND pa.average >= (tb.team_avg - tb.team_std) THEN pa.average END) AS GK_avg_std,
+                        AVG(CASE WHEN pa.global_position = 'Defensa' AND pa.average >= (tb.team_avg - tb.team_std) THEN pa.average END) AS DEF_avg_std,
+                        AVG(CASE WHEN pa.global_position = 'Centrocampista' AND pa.average >= (tb.team_avg - tb.team_std) THEN pa.average END) AS MID_avg_std,
+                        AVG(CASE WHEN pa.global_position = 'Delantero' AND pa.average >= (tb.team_avg - tb.team_std) THEN pa.average END) AS FWD_avg_std,
+
                         t.game,
                         t.team_league,
                         t.team_country
@@ -287,8 +294,8 @@ creation_queries = ["CREATE TABLE teams (ID INT NOT NULL AUTO_INCREMENT, team_na
                     LEFT JOIN leagues l ON pa.league_id_fk = l.id
                     JOIN team_base tb ON pa.team_id_fk = tb.team_id_fk AND pa.league_id_fk <=> tb.league_id_fk
                     JOIN filtered_avg fa ON pa.team_id_fk = fa.team_id_fk AND pa.league_id_fk <=> fa.league_id_fk
-                    GROUP BY pa.team_id_fk, pa.global_position, t.team_name, tb.league_id_fk, l.league_name, tb.team_avg, fa.team_avg_std
-                    ORDER BY l.league_name, t.team_name, pa.global_position;
+                    GROUP BY pa.team_id_fk, t.team_name, tb.league_id_fk, l.league_name, tb.team_avg, fa.team_avg_std
+                    ORDER BY l.league_name, t.team_name;
                     """,
                     """
                     CREATE VIEW top_scorers_by_league AS
