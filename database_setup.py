@@ -29,7 +29,8 @@ creation_queries = ["CREATE TABLE teams (ID INT NOT NULL AUTO_INCREMENT, team_na
                         player_avg_limit INT DEFAULT 0,
                         budget_calculation_type ENUM('restrictive', 'default'),
                         game VARCHAR(50),
-                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        UNIQUE (league_name)
                     );
                     """,
                     """
