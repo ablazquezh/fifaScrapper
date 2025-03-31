@@ -351,6 +351,18 @@ creation_queries = ["CREATE TABLE teams (ID INT NOT NULL AUTO_INCREMENT, team_na
 
                     GROUP BY u.ID, u.user_name, l.type WITH ROLLUP
                     ORDER BY total_points DESC;
+                    """,
+                    """
+                    CREATE VIEW player_positions AS
+                    SELECT 
+                        p.id AS player_id,
+                        p.name AS player_name,
+                        pos.id AS position_id,
+                        pos.position AS position_name,
+                        pj.game
+                    FROM players p
+                    JOIN positions_join pj ON p.id = pj.player_id_fk
+                    JOIN positions pos ON pj.position_id_fk = pos.id;
                     """
                     ]
 
