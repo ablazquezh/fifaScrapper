@@ -363,6 +363,23 @@ creation_queries = ["CREATE TABLE teams (ID INT NOT NULL AUTO_INCREMENT, team_na
                     FROM players p
                     JOIN positions_join pj ON p.id = pj.player_id_fk
                     JOIN positions pos ON pj.position_id_fk = pos.id;
+                    """,
+                    """
+                    CREATE VIEW league_participants_view AS
+                    SELECT 
+                    lp.ID AS participant_id,
+                    lp.league_ID_fk,
+                    u.id AS user_id,       -- Assuming `id` is the primary key in `user` table
+                    u.user_name AS user_name,   -- Assuming the `user` table has a `name` column
+                    t.id AS team_id,       -- Assuming `id` is the primary key in `team` table
+                    t.team_name AS team_name,  -- Assuming the `team` table has a `team_name` column
+                    t.game
+                    FROM 
+                    league_participants lp
+                    JOIN 
+                    users u ON lp.user_ID_fk = u.id   -- Join with the `user` table
+                    JOIN 
+                    teams t ON lp.team_ID_fk = t.id;
                     """
                     ]
 
