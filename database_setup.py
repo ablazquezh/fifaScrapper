@@ -93,29 +93,6 @@ creation_queries = ["CREATE TABLE teams (ID INT NOT NULL AUTO_INCREMENT, team_na
                     ORDER BY a.transferred_at DESC;
                     """,
                     """
-                    CREATE VIEW latest_team_from_player AS
-                    SELECT 
-                        p.id ,
-                        p.name,
-                        l.id AS league_id,
-                        l.league_name AS league_name,
-                        COALESCE(t_new.team_name, t_original.team_name) AS current_team
-                    FROM players p
-                    JOIN leagues l ON l.id IN (SELECT DISTINCT league_id_fk FROM player_transfers)
-                    LEFT JOIN teams t_original ON p.team_id_fk = t_original.id
-                    LEFT JOIN player_transfers a 
-                        ON p.id = a.player_id_fk 
-                        AND a.league_id_fk = l.id
-                        AND a.transferred_at = (
-                            SELECT MAX(transferred_at) 
-                            FROM player_transfers 
-                            WHERE player_id_fk = p.id 
-                            AND league_id_fk = l.id
-                        )
-                    LEFT JOIN teams t_new ON a.team_id_fk = t_new.id
-                    ORDER BY l.id, p.id;
-                    """,
-                    """
                     CREATE TABLE matches (
                         ID INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
                         local_team_id_fk INT,
@@ -380,6 +357,41 @@ creation_queries = ["CREATE TABLE teams (ID INT NOT NULL AUTO_INCREMENT, team_na
                     users u ON lp.user_ID_fk = u.id   -- Join with the `user` table
                     JOIN 
                     teams t ON lp.team_ID_fk = t.id;
+                    """,
+                    """
+                    CREATE VIEW pro_league_teams AS
+                    SELECT 
+                        p.id AS player_id,
+                        p.name AS player_name,
+                        COALESCE(t_new.id, t_original.id) AS team_id,
+                        COALESCE(t_new.team_name, t_original.team_name) AS team_name
+                    FROM players p
+                    LEFT JOIN teams t_original ON p.team_id_fk = t_original.id
+                    LEFT JOIN player_transfers latest_transfer
+                        ON p.id = latest_transfer.player_id_fk
+                        AND latest_transfer.transferred_at = (
+                            SELECT MAX(transferred_at) 
+                            FROM player_transfers 
+                            WHERE player_id_fk = p.id
+                        )
+                    LEFT JOIN teams t_new ON latest_transfer.team_id_fk = t_new.id;
+                    """,
+                    """
+                    CREATE VIEW raw_league_teams AS
+                    SELECT 
+                        p.id AS player_id,
+                        p.name AS player_name,
+                        t_new.id AS team_id,
+                        t_new.team_name AS team_name
+                    FROM players p
+                    JOIN player_transfers latest_transfer
+                        ON p.id = latest_transfer.player_id_fk
+                        AND latest_transfer.transferred_at = (
+                            SELECT MAX(transferred_at) 
+                            FROM player_transfers 
+                            WHERE player_id_fk = p.id
+                        )
+                    JOIN teams t_new ON latest_transfer.team_id_fk = t_new.id;
                     """
                     ]
 
