@@ -20,7 +20,7 @@ options = webdriver.ChromeOptions()
 
 for game_name_current, base_url_current in zip(game_name, base_url):
 
-    team_df = pd.read_csv(f'fifaScrapper/output/{game_name_current}/teams.csv', sep=',')
+    team_df = pd.read_csv(f'output/{game_name_current}/teams.csv', sep=',')
     team_df["team_league"] = ""
     team_df["team_country"] = ""
 
@@ -73,7 +73,7 @@ for game_name_current, base_url_current in zip(game_name, base_url):
             stoppage += 1
 
     
-    team_df.to_csv(f'fifaScrapper/output/{game_name_current}/teams.csv', index=False, sep=',')
+    team_df.to_csv(f'output/{game_name_current}/teams.csv', index=False, sep=',')
 
     driver.quit()
 
