@@ -10,7 +10,7 @@ from selenium.webdriver.common.by import By
 from bs4 import BeautifulSoup
 import pandas as pd
 import requests
-
+import urllib.parse
 
 def find_global_position(pos):
     gpos = "Portero"
@@ -26,10 +26,12 @@ game_name = ["fifa13", "fifa19"]
 base_url = ["https://sofifa.com/?r=130034&set=true&showCol%5B%5D=ae&showCol%5B%5D=oa&showCol%5B%5D=pt&showCol%5B%5D=bo&showCol%5B%5D=bp&showCol%5B%5D=vl&showCol%5B%5D=wg&showCol%5B%5D=sp&showCol%5B%5D=hi&showCol%5B%5D=pf&showCol%5B%5D=he&showCol%5B%5D=sh&showCol%5B%5D=lo&showCol%5B%5D=dr&showCol%5B%5D=ac&showCol%5B%5D=ju&showCol%5B%5D=so&showCol%5B%5D=st&showCol%5B%5D=ln&showCol%5B%5D=in&showCol%5B%5D=td&showCol%5B%5D=wk&hl=es-ES",
             "https://sofifa.com/?r=190075&set=true&showCol%5B%5D=ae&showCol%5B%5D=oa&showCol%5B%5D=pt&showCol%5B%5D=bo&showCol%5B%5D=bp&showCol%5B%5D=vl&showCol%5B%5D=wg&showCol%5B%5D=sp&showCol%5B%5D=hi&showCol%5B%5D=pf&showCol%5B%5D=he&showCol%5B%5D=sh&showCol%5B%5D=lo&showCol%5B%5D=dr&showCol%5B%5D=ac&showCol%5B%5D=ju&showCol%5B%5D=so&showCol%5B%5D=st&showCol%5B%5D=ln&showCol%5B%5D=in&showCol%5B%5D=td&showCol%5B%5D=wk&hl=es-ES"]
 
-player_avg_stop = 71
+#player_avg_stop = 71
 
 options = webdriver.ChromeOptions()
 #options.add_argument("--headless=new")
+
+player_file_offset = 0
 
 for game_name_current, base_url_current in zip(game_name, base_url):
 
@@ -41,7 +43,7 @@ for game_name_current, base_url_current in zip(game_name, base_url):
 
     def save_image(image_url, code, type):
         img_data = requests.get(image_url).content
-        with open(f"output/{game_name_current}/img/{type}/{code}.png", 'wb') as handler:
+        with open(f"output/{game_name_current}/img/{type}/{urllib.parse.quote(str(code).encode("utf-8"))}.png", 'wb') as handler:
             handler.write(img_data)
 
     player_df = pd.DataFrame(columns=['name','nickname', 'country_code', 'age', 'height', 'average', 'global_position', 'value', 'wage', 'best_foot',
@@ -62,15 +64,17 @@ for game_name_current, base_url_current in zip(game_name, base_url):
 
     processed_teams = []
 
-    stoppage = False
+    #stoppage = False
 
     modal = driver.find_element(By.CLASS_NAME, 'fc-footer-buttons')
     links = modal.find_elements(By.CSS_SELECTOR, "button[class='fc-button fc-cta-consent fc-primary-button']")   
     links[0].click()
 
     idx_offset = 0
+    stoppage = 0
 
-    while stoppage is False:
+    while stoppage < 2:
+    #while stoppage is False:
 
         content = driver.page_source
         soup = BeautifulSoup(content, 'html.parser')
@@ -84,7 +88,7 @@ for game_name_current, base_url_current in zip(game_name, base_url):
 
             player_img_section = i.find_next('td')
             player_img = player_img_section.find('img')['data-src']    
-            save_image(player_img, idx + idx_offset, type="player")
+            save_image(player_img, idx + idx_offset + player_file_offset, type="player")
 
             ##################
             player_name_section = player_img_section.find_next('td')
@@ -179,8 +183,10 @@ for game_name_current, base_url_current in zip(game_name, base_url):
                                             player_speed, player_shotpw, player_lshot, player_stamina, player_def, player_interc, processed_teams.index(player_club_name) if player_club_name is not None else None, 
                                             game_name_current] 
 
+            """
             if int(player_avg) < player_avg_stop: 
                 stoppage = True
+            """
 
         
         modal = driver.find_element(By.CLASS_NAME, 'pagination')
@@ -190,6 +196,7 @@ for game_name_current, base_url_current in zip(game_name, base_url):
             driver.execute_script("arguments[0].click();", links[1])
         else:
             driver.execute_script("arguments[0].click();", links[0])
+            stoppage += 1
 
         idx_offset = idx_offset + len(table_rows) -1 
 
@@ -200,6 +207,7 @@ for game_name_current, base_url_current in zip(game_name, base_url):
         baseteam_df.loc[len(baseteam_df)] = [team, game_name_current]
         
 
+    player_file_offset = player_file_offset + len(player_df)
     player_df.to_csv(f'output/{game_name_current}/players.csv', index=False, sep=',')
     baseteam_df.to_csv(f'output/{game_name_current}/teams.csv', index=False, sep=',')
     positions_df.to_csv(f'output/{game_name_current}/positions.csv', index=False, sep=',')

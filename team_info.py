@@ -15,8 +15,6 @@ game_name = ["fifa13", "fifa19"]
 base_url = ["https://sofifa.com/teams?type=club&r=130034&set=true&hl=es-ES",
             "https://sofifa.com/teams?type=club&r=190075&set=true&hl=es-ES"]
 
-player_avg_stop = 71
-
 options = webdriver.ChromeOptions()
 #options.add_argument("--headless=new")
 
