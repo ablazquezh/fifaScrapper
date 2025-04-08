@@ -147,131 +147,71 @@ creation_queries = ["CREATE TABLE teams (ID INT NOT NULL AUTO_INCREMENT, team_na
                     """,
                     """
                     CREATE VIEW league_table AS
-                    SELECT 
-                        l.id AS league_id,
-                        l.league_name AS league_name,
-                        t.ID AS team_id,
-                        t.team_name,
+                        SELECT 
+                            l.id AS league_id,
+                            l.league_name AS league_name,
+                            t.ID AS team_id,
+                            t.team_name,
+                            
+                            -- Replace NULL with 0 when no matches are found
+                            COALESCE(COUNT(m.id), 0) AS n_played_matches,
+                            
+                            -- Replace NULL with 0 when no victories are found
+                            COALESCE(SUM(CASE 
+                                WHEN g.team_goals > g.opponent_goals THEN 1 ELSE 0 
+                            END), 0) AS victories,
+
+                            -- Replace NULL with 0 when no draws are found
+                            COALESCE(SUM(CASE 
+                                WHEN g.team_goals = g.opponent_goals THEN 1 ELSE 0 
+                            END), 0) AS draws,
+
+                            -- Replace NULL with 0 when no losses are found
+                            COALESCE(SUM(CASE 
+                                WHEN g.team_goals < g.opponent_goals THEN 1 ELSE 0 
+                            END), 0) AS loses,
+
+                            -- Replace NULL with 0 when no points are found
+                            COALESCE(SUM(CASE 
+                                WHEN g.team_goals > g.opponent_goals THEN 3 
+                                WHEN g.team_goals = g.opponent_goals THEN 1
+                                ELSE 0 
+                            END), 0) AS points,
+
+                            -- Replace NULL with 0 when no goals are found
+                            COALESCE(SUM(g.team_goals), 0) AS goals_favor,
+
+                            -- Replace NULL with 0 when no opponent goals are found
+                            COALESCE(SUM(g.opponent_goals), 0) AS goals_against,
+
+                            -- Replace NULL with 0 when no goal difference is calculated
+                            COALESCE(SUM(g.team_goals - g.opponent_goals), 0) AS goal_diff,
+
+                            -- Replace NULL with 0 for yellow cards
+                            COALESCE(SUM(CASE WHEN c.type = 'yellow' THEN 1 ELSE 0 END), 0) AS yellow_cards,
+
+                            -- Replace NULL with 0 for red cards
+                            COALESCE(SUM(CASE WHEN c.type = 'red' THEN 1 ELSE 0 END), 0) AS red_cards
+
+                        FROM teams t
+                        -- Join with league_participants_view to ensure only teams assigned to a league are included
+                        JOIN league_participants_view lpv ON t.id = lpv.team_id
+                        JOIN leagues l ON lpv.league_ID_fk = l.id
                         
-                        COUNT(m.id) AS n_played_matches,
+                        LEFT JOIN matches m ON t.id = m.local_team_id_fk OR t.id = m.visitor_team_id_fk
+                        LEFT JOIN (
+                            SELECT 
+                                g.match_id_fk,
+                                g.team_id_fk,
+                                COUNT(g.id) AS team_goals,
+                                (SELECT COUNT(*) FROM goals g2 WHERE g2.match_id_fk = g.match_id_fk AND g2.team_id_fk != g.team_id_fk) AS opponent_goals
+                            FROM goals g
+                            GROUP BY g.match_id_fk, g.team_id_fk
+                        ) g ON g.match_id_fk = m.id AND g.team_id_fk = t.id
                         
-                        SUM(CASE 
-                            WHEN g.team_goals > g.opponent_goals THEN 1 ELSE 0 
-                        END) AS victories,
-
-                        SUM(CASE 
-                            WHEN g.team_goals = g.opponent_goals THEN 1 ELSE 0 
-                        END) AS draws,
-
-                        SUM(CASE 
-                            WHEN g.team_goals < g.opponent_goals THEN 1 ELSE 0 
-                        END) AS loses,
-
-                        SUM(CASE 
-                            WHEN g.team_goals > g.opponent_goals THEN 3 
-                            WHEN g.team_goals = g.opponent_goals THEN 1
-                            ELSE 0 
-                        END) AS points,
-
-                        SUM(g.team_goals) AS goals_favor,
-                        SUM(g.opponent_goals) AS goals_against,
-                        SUM(g.team_goals - g.opponent_goals) AS goal_diff,
-
-                        SUM(CASE WHEN c.type = 'yellow' THEN 1 ELSE 0 END) AS yellow_cards,
-                        SUM(CASE WHEN c.type = 'red' THEN 1 ELSE 0 END) AS red_cards
-
-                    FROM teams t
-                    JOIN matches m ON t.id = m.local_team_id_fk OR t.id = m.visitor_team_id_fk
-                    JOIN leagues l ON m.league_id_fk = l.id
-
-                    -- Optimized goal calculation:
-                    LEFT JOIN (
-                        SELECT 
-                            g.match_id_fk,
-                            g.team_id_fk,
-                            COUNT(g.id) AS team_goals,
-                            (SELECT COUNT(*) FROM goals g2 WHERE g2.match_id_fk = g.match_id_fk AND g2.team_id_fk != g.team_id_fk) AS opponent_goals
-                        FROM goals g
-                        GROUP BY g.match_id_fk, g.team_id_fk
-                    ) g ON g.match_id_fk = m.id AND g.team_id_fk = t.id
-
-                    -- Optimized card calculation:
-                    LEFT JOIN cards c ON c.match_id_fk = m.id AND c.team_id_fk = t.id
-
-                    GROUP BY l.id, l.league_name, t.ID, t.team_name
-                    ORDER BY points DESC, goal_diff DESC, goals_favor DESC;
-                    """,
-                    """
-                    CREATE VIEW team_stats AS
-                    WITH player_assignments AS (
-                        -- Jugadores en su equipo original
-                        SELECT 
-                            p.id AS player_id,
-                            p.team_id_fk,
-                            NULL AS league_id_fk,
-                            p.average,
-                            p.global_position
-                        FROM players p
-                        UNION ALL
-                        -- Jugadores reasignados en `player_transfers`
-                        SELECT 
-                            p.id AS player_id,
-                            pt.team_id_fk,
-                            pt.league_id_fk,
-                            p.average,
-                            p.global_position
-                        FROM players p
-                        JOIN player_transfers pt ON p.id = pt.player_id_fk
-                    ), 
-                    team_base AS (
-                        SELECT 
-                            team_id_fk,
-                            league_id_fk,
-                            AVG(average) AS team_avg,
-                            STDDEV(average) AS team_std
-                        FROM player_assignments
-                        GROUP BY team_id_fk, league_id_fk
-                    ),
-                    filtered_avg AS (
-                        SELECT 
-                            pa.team_id_fk,
-                            pa.league_id_fk,
-                            AVG(average) AS team_avg_std
-                        FROM player_assignments pa
-                        JOIN team_base tb ON pa.team_id_fk = tb.team_id_fk AND pa.league_id_fk <=> tb.league_id_fk
-                        WHERE pa.average >= (tb.team_avg - tb.team_std)
-                        GROUP BY pa.team_id_fk, pa.league_id_fk
-                    )
-                    SELECT 
-                        pa.team_id_fk, 
-                        t.team_name,
-                        tb.league_id_fk,
-                        l.league_name AS league_name,
-                        tb.team_avg,
-                        fa.team_avg_std,
-                        
-                        -- Estadísticas PIVOTEADAS por posición:
-                        AVG(CASE WHEN pa.global_position = 'Portero' THEN pa.average END) AS GK_avg,
-                        AVG(CASE WHEN pa.global_position = 'Defensa' THEN pa.average END) AS DEF_avg,
-                        AVG(CASE WHEN pa.global_position = 'Centrocampista' THEN pa.average END) AS MID_avg,
-                        AVG(CASE WHEN pa.global_position = 'Delantero' THEN pa.average END) AS FWD_avg,
-
-                        -- Media solo de los jugadores que cumplen el filtro de desviación estándar
-                        AVG(CASE WHEN pa.global_position = 'Portero' AND pa.average >= (tb.team_avg - tb.team_std) THEN pa.average END) AS GK_avg_std,
-                        AVG(CASE WHEN pa.global_position = 'Defensa' AND pa.average >= (tb.team_avg - tb.team_std) THEN pa.average END) AS DEF_avg_std,
-                        AVG(CASE WHEN pa.global_position = 'Centrocampista' AND pa.average >= (tb.team_avg - tb.team_std) THEN pa.average END) AS MID_avg_std,
-                        AVG(CASE WHEN pa.global_position = 'Delantero' AND pa.average >= (tb.team_avg - tb.team_std) THEN pa.average END) AS FWD_avg_std,
-
-                        t.game,
-                        t.team_league,
-                        t.team_country
-                    FROM player_assignments pa
-                    JOIN teams t ON pa.team_id_fk = t.id
-                    LEFT JOIN leagues l ON pa.league_id_fk = l.id
-                    JOIN team_base tb ON pa.team_id_fk = tb.team_id_fk AND pa.league_id_fk <=> tb.league_id_fk
-                    JOIN filtered_avg fa ON pa.team_id_fk = fa.team_id_fk AND pa.league_id_fk <=> fa.league_id_fk
-                    GROUP BY pa.team_id_fk, t.team_name, tb.league_id_fk, l.league_name, tb.team_avg, fa.team_avg_std
-                    ORDER BY l.league_name, t.team_name;
+                        LEFT JOIN cards c ON c.match_id_fk = m.id AND c.team_id_fk = t.id
+                        GROUP BY l.id, l.league_name, t.ID, t.team_name
+                        ORDER BY points DESC, goal_diff DESC, goals_favor DESC;
                     """,
                     """
                     CREATE VIEW top_scorers_by_league AS
