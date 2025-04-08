@@ -153,45 +153,34 @@ creation_queries = ["CREATE TABLE teams (ID INT NOT NULL AUTO_INCREMENT, team_na
                             t.ID AS team_id,
                             t.team_name,
                             
-                            -- Replace NULL with 0 when no matches are found
-                            COALESCE(CAST(COUNT(m.id) AS decimal), 0) AS n_played_matches,
+                            -- Explicitly cast to SIGNED to avoid Decimal type for `COUNT()`
+                            COALESCE(CAST(COUNT(m.id) AS CHAR), 0)  AS n_played_matches,
                             
-                            -- Replace NULL with 0 when no victories are found
-                            COALESCE(SUM(CASE 
+                            -- Same for SUM to avoid Decimal type
+                            COALESCE(CAST(SUM(CASE 
                                 WHEN g.team_goals > g.opponent_goals THEN 1 ELSE 0 
-                            END), 0) AS victories,
+                            END) AS CHAR), 0) AS victories,
 
-                            -- Replace NULL with 0 when no draws are found
-                            COALESCE(SUM(CASE 
+                            COALESCE(CAST(SUM(CASE 
                                 WHEN g.team_goals = g.opponent_goals THEN 1 ELSE 0 
-                            END), 0) AS draws,
+                            END) AS CHAR), 0) AS draws,
 
-                            -- Replace NULL with 0 when no losses are found
-                            COALESCE(SUM(CASE 
+                            COALESCE(CAST(SUM(CASE 
                                 WHEN g.team_goals < g.opponent_goals THEN 1 ELSE 0 
-                            END), 0) AS loses,
+                            END) AS CHAR), 0) AS loses,
 
-                            -- Replace NULL with 0 when no points are found
-                            COALESCE(SUM(CASE 
+                            COALESCE(CAST(SUM(CASE 
                                 WHEN g.team_goals > g.opponent_goals THEN 3 
                                 WHEN g.team_goals = g.opponent_goals THEN 1
                                 ELSE 0 
-                            END), 0) AS points,
+                            END) AS CHAR), 0) AS points,
 
-                            -- Replace NULL with 0 when no goals are found
-                            COALESCE(SUM(g.team_goals), 0) AS goals_favor,
+                            COALESCE(CAST(SUM(g.team_goals) AS CHAR), 0) AS goals_favor,
+                            COALESCE(CAST(SUM(g.opponent_goals) AS CHAR), 0) AS goals_against,
+                            COALESCE(CAST(SUM(g.team_goals - g.opponent_goals) AS CHAR), 0) AS goal_diff,
 
-                            -- Replace NULL with 0 when no opponent goals are found
-                            COALESCE(SUM(g.opponent_goals), 0) AS goals_against,
-
-                            -- Replace NULL with 0 when no goal difference is calculated
-                            COALESCE(SUM(g.team_goals - g.opponent_goals), 0) AS goal_diff,
-
-                            -- Replace NULL with 0 for yellow cards
-                            COALESCE(SUM(CASE WHEN c.type = 'yellow' THEN 1 ELSE 0 END), 0) AS yellow_cards,
-
-                            -- Replace NULL with 0 for red cards
-                            COALESCE(SUM(CASE WHEN c.type = 'red' THEN 1 ELSE 0 END), 0) AS red_cards
+                            COALESCE(CAST(SUM(CASE WHEN c.type = 'yellow' THEN 1 ELSE 0 END) AS CHAR), 0) AS yellow_cards,
+                            COALESCE(CAST(SUM(CASE WHEN c.type = 'red' THEN 1 ELSE 0 END) AS CHAR), 0) AS red_cards
 
                         FROM teams t
                         -- Join with league_participants_view to ensure only teams assigned to a league are included
@@ -212,7 +201,6 @@ creation_queries = ["CREATE TABLE teams (ID INT NOT NULL AUTO_INCREMENT, team_na
                         LEFT JOIN cards c ON c.match_id_fk = m.id AND c.team_id_fk = t.id
                         GROUP BY l.id, l.league_name, t.ID, t.team_name
                         ORDER BY points DESC, goal_diff DESC, goals_favor DESC;
-
                     """,
                     """
                     CREATE VIEW top_scorers_by_league AS
