@@ -134,12 +134,12 @@ creation_queries = ["CREATE TABLE teams (ID INT NOT NULL AUTO_INCREMENT, team_na
                         l.league_name AS league_name,
                         t1.team_name AS local_team,
                         t2.team_name AS visitor_team,
-                        (SELECT COUNT(*) FROM goals g WHERE g.match_id_fk = m.ID AND g.team_id_fk = m.local_team_id_fk) AS goals_local,
-                        (SELECT COUNT(*) FROM goals g WHERE g.match_id_fk = m.ID AND g.team_id_fk = m.visitor_team_id_fk) AS goals_visitor,
-                        (SELECT COUNT(*) FROM cards c WHERE c.match_id_fk = m.ID AND c.team_id_fk = m.local_team_id_fk AND c.type = 'yellow') AS yellow_cards_local,
-                        (SELECT COUNT(*) FROM cards c WHERE c.match_id_fk = m.ID AND c.team_id_fk = m.visitor_team_id_fk AND c.type = 'yellow') AS yellow_cards_visitor,
-                        (SELECT COUNT(*) FROM cards c WHERE c.match_id_fk = m.ID AND c.team_id_fk = m.local_team_id_fk AND c.type = 'red') AS red_cards_local,
-                        (SELECT COUNT(*) FROM cards c WHERE c.match_id_fk = m.ID AND c.team_id_fk = m.visitor_team_id_fk AND c.type = 'red') AS red_cards_visitor
+                        CAST((SELECT COUNT(*) FROM goals g WHERE g.match_id_fk = m.ID AND g.team_id_fk = m.local_team_id_fk) AS CHAR) AS goals_local,
+                        CAST((SELECT COUNT(*) FROM goals g WHERE g.match_id_fk = m.ID AND g.team_id_fk = m.visitor_team_id_fk) AS CHAR) AS goals_visitor,
+                        CAST((SELECT COUNT(*) FROM cards c WHERE c.match_id_fk = m.ID AND c.team_id_fk = m.local_team_id_fk AND c.type = 'yellow') AS CHAR) AS yellow_cards_local,
+                        CAST((SELECT COUNT(*) FROM cards c WHERE c.match_id_fk = m.ID AND c.team_id_fk = m.visitor_team_id_fk AND c.type = 'yellow') AS CHAR) AS yellow_cards_visitor,
+                        CAST((SELECT COUNT(*) FROM cards c WHERE c.match_id_fk = m.ID AND c.team_id_fk = m.local_team_id_fk AND c.type = 'red') AS CHAR) AS red_cards_local,
+                        CAST((SELECT COUNT(*) FROM cards c WHERE c.match_id_fk = m.ID AND c.team_id_fk = m.visitor_team_id_fk AND c.type = 'red') AS CHAR) AS red_cards_visitor
                     FROM matches m
                     JOIN leagues l ON m.league_id_fk = l.ID
                     JOIN teams t1 ON m.local_team_id_fk = t1.ID
@@ -210,7 +210,7 @@ creation_queries = ["CREATE TABLE teams (ID INT NOT NULL AUTO_INCREMENT, team_na
                         p.ID AS player_id,
                         p.name AS player_name,
                         t.team_name AS team_name,
-                        COUNT(g.ID) AS goals
+                        CAST(COUNT(g.ID) AS CHAR) AS goals
                     FROM goals g
                     JOIN players p ON g.player_id_fk = p.ID
                     JOIN teams t ON g.team_id_fk = t.ID
