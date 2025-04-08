@@ -65,7 +65,7 @@ for game in game_name:
     print(game)
     for file, insert_command in zip(list(file_order.keys()), insert_st):
         print(file)
-        df = pd.read_csv(f'fifaScrapper/output/{game}/{file}.csv', sep=',')
+        df = pd.read_csv(f'./output/{game}/{file}.csv', sep=',')
         df = df.replace({np.nan: None})
         if file == "players":
             df["team_id_fk"] = df["team_id_fk"] + 1 + file_order["teams"]
@@ -75,7 +75,7 @@ for game in game_name:
 
         if file == "teams":
             df = df[["team_name", "game", "team_league", "team_country"]]
-            df.to_csv(f'fifaScrapper/output/{game}/teams.csv', index=False, sep=',')
+            df.to_csv(f'./output/{game}/teams.csv', index=False, sep=',')
 
         df = df.replace({np.nan: None})
 

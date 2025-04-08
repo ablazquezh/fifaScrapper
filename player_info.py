@@ -22,16 +22,19 @@ def find_global_position(pos):
     return gpos
 
 
-game_name = ["fifa13", "fifa19"]
-base_url = ["https://sofifa.com/?r=130034&set=true&showCol%5B%5D=ae&showCol%5B%5D=oa&showCol%5B%5D=pt&showCol%5B%5D=bo&showCol%5B%5D=bp&showCol%5B%5D=vl&showCol%5B%5D=wg&showCol%5B%5D=sp&showCol%5B%5D=hi&showCol%5B%5D=pf&showCol%5B%5D=he&showCol%5B%5D=sh&showCol%5B%5D=lo&showCol%5B%5D=dr&showCol%5B%5D=ac&showCol%5B%5D=ju&showCol%5B%5D=so&showCol%5B%5D=st&showCol%5B%5D=ln&showCol%5B%5D=in&showCol%5B%5D=td&showCol%5B%5D=wk&hl=es-ES",
-            "https://sofifa.com/?r=190075&set=true&showCol%5B%5D=ae&showCol%5B%5D=oa&showCol%5B%5D=pt&showCol%5B%5D=bo&showCol%5B%5D=bp&showCol%5B%5D=vl&showCol%5B%5D=wg&showCol%5B%5D=sp&showCol%5B%5D=hi&showCol%5B%5D=pf&showCol%5B%5D=he&showCol%5B%5D=sh&showCol%5B%5D=lo&showCol%5B%5D=dr&showCol%5B%5D=ac&showCol%5B%5D=ju&showCol%5B%5D=so&showCol%5B%5D=st&showCol%5B%5D=ln&showCol%5B%5D=in&showCol%5B%5D=td&showCol%5B%5D=wk&hl=es-ES"]
+#game_name = ["fifa13", "fifa19"]
+#base_url = ["https://sofifa.com/?r=130034&set=true&showCol%5B%5D=ae&showCol%5B%5D=oa&showCol%5B%5D=pt&showCol%5B%5D=bo&showCol%5B%5D=bp&showCol%5B%5D=vl&showCol%5B%5D=wg&showCol%5B%5D=sp&showCol%5B%5D=hi&showCol%5B%5D=pf&showCol%5B%5D=he&showCol%5B%5D=sh&showCol%5B%5D=lo&showCol%5B%5D=dr&showCol%5B%5D=ac&showCol%5B%5D=ju&showCol%5B%5D=so&showCol%5B%5D=st&showCol%5B%5D=ln&showCol%5B%5D=in&showCol%5B%5D=td&showCol%5B%5D=wk&hl=es-ES",
+#            "https://sofifa.com/?r=190075&set=true&showCol%5B%5D=ae&showCol%5B%5D=oa&showCol%5B%5D=pt&showCol%5B%5D=bo&showCol%5B%5D=bp&showCol%5B%5D=vl&showCol%5B%5D=wg&showCol%5B%5D=sp&showCol%5B%5D=hi&showCol%5B%5D=pf&showCol%5B%5D=he&showCol%5B%5D=sh&showCol%5B%5D=lo&showCol%5B%5D=dr&showCol%5B%5D=ac&showCol%5B%5D=ju&showCol%5B%5D=so&showCol%5B%5D=st&showCol%5B%5D=ln&showCol%5B%5D=in&showCol%5B%5D=td&showCol%5B%5D=wk&hl=es-ES"]
+
+game_name = ["fifa19"]
+base_url = ["https://sofifa.com/?r=190075&set=true&showCol%5B%5D=ae&showCol%5B%5D=oa&showCol%5B%5D=pt&showCol%5B%5D=bo&showCol%5B%5D=bp&showCol%5B%5D=vl&showCol%5B%5D=wg&showCol%5B%5D=sp&showCol%5B%5D=hi&showCol%5B%5D=pf&showCol%5B%5D=he&showCol%5B%5D=sh&showCol%5B%5D=lo&showCol%5B%5D=dr&showCol%5B%5D=ac&showCol%5B%5D=ju&showCol%5B%5D=so&showCol%5B%5D=st&showCol%5B%5D=ln&showCol%5B%5D=in&showCol%5B%5D=td&showCol%5B%5D=wk&hl=es-ES"]
 
 #player_avg_stop = 71
 
 options = webdriver.ChromeOptions()
 #options.add_argument("--headless=new")
 
-player_file_offset = 0
+player_file_offset = 15028
 
 for game_name_current, base_url_current in zip(game_name, base_url):
 
@@ -42,8 +45,9 @@ for game_name_current, base_url_current in zip(game_name, base_url):
     }
 
     def save_image(image_url, code, type):
+        code = str(code).replace("/", "_")
         img_data = requests.get(image_url).content
-        with open(f"output/{game_name_current}/img/{type}/{urllib.parse.quote(str(code).encode("utf-8"))}.png", 'wb') as handler:
+        with open(f"output/{game_name_current}/img/{type}/{urllib.parse.quote(code).encode('utf-8')}.png", 'wb') as handler:
             handler.write(img_data)
 
     player_df = pd.DataFrame(columns=['name','nickname', 'country_code', 'age', 'height', 'average', 'global_position', 'value', 'wage', 'best_foot',
