@@ -67,8 +67,6 @@ creation_queries = ["CREATE TABLE teams (ID INT NOT NULL AUTO_INCREMENT, team_na
                         player_id_fk INT,
                         team_id_fk INT,
                         league_id_fk INT,
-                        player_status ENUM('ok', 'suspended', 'injured'),
-                        transfer_type ENUM('base', 'transfer_window'),
                         transferred_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                         FOREIGN KEY (player_id_fk) REFERENCES players(ID),
                         FOREIGN KEY (league_id_fk) REFERENCES leagues(ID),
