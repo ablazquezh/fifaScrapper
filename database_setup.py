@@ -154,7 +154,7 @@ creation_queries = ["CREATE TABLE teams (ID INT NOT NULL AUTO_INCREMENT, team_na
                             t.team_name,
                             
                             -- Replace NULL with 0 when no matches are found
-                            COALESCE(COUNT(m.id), 0) AS n_played_matches,
+                            COALESCE(CAST(COUNT(m.id) AS decimal), 0) AS n_played_matches,
                             
                             -- Replace NULL with 0 when no victories are found
                             COALESCE(SUM(CASE 
@@ -212,6 +212,7 @@ creation_queries = ["CREATE TABLE teams (ID INT NOT NULL AUTO_INCREMENT, team_na
                         LEFT JOIN cards c ON c.match_id_fk = m.id AND c.team_id_fk = t.id
                         GROUP BY l.id, l.league_name, t.ID, t.team_name
                         ORDER BY points DESC, goal_diff DESC, goals_favor DESC;
+
                     """,
                     """
                     CREATE VIEW top_scorers_by_league AS
