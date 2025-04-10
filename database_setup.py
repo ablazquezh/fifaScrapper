@@ -97,6 +97,7 @@ creation_queries = ["CREATE TABLE teams (ID INT NOT NULL AUTO_INCREMENT, team_na
                         visitor_team_id_fk INT,
                         league_id_fk INT,
                         matchday INT,
+                        played BOOL,
                         FOREIGN KEY (local_team_id_fk) REFERENCES teams(ID),
                         FOREIGN KEY (visitor_team_id_fk) REFERENCES teams(ID),
                         FOREIGN KEY (league_id_fk) REFERENCES leagues(ID)
