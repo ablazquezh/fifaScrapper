@@ -305,7 +305,7 @@ creation_queries = ["CREATE TABLE teams (ID INT NOT NULL AUTO_INCREMENT, team_na
                     CREATE VIEW pro_league_teams AS
                     SELECT 
                         p.id AS player_id,
-                        p.name AS player_name,
+                        p.nickname AS player_name,
                         COALESCE(t_new.id, t_original.id) AS team_id,
                         COALESCE(t_new.team_name, t_original.team_name) AS team_name,
                         latest_transfer.league_id_fk as league_id
@@ -324,7 +324,7 @@ creation_queries = ["CREATE TABLE teams (ID INT NOT NULL AUTO_INCREMENT, team_na
                     CREATE VIEW raw_league_teams AS
                     SELECT 
                         p.id AS player_id,
-                        p.name AS player_name,
+                        p.nickname AS player_name,
                         t_new.id AS team_id,
                         t_new.team_name AS team_name,
                         latest_transfer.league_id_fk as league_id
