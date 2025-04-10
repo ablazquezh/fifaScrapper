@@ -92,7 +92,7 @@ creation_queries = ["CREATE TABLE teams (ID INT NOT NULL AUTO_INCREMENT, team_na
                     """,
                     """
                     CREATE TABLE matches (
-                        ID INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
+                        ID CHAR(36) NOT NULL PRIMARY KEY,
                         local_team_id_fk INT,
                         visitor_team_id_fk INT,
                         league_id_fk INT,
@@ -105,7 +105,7 @@ creation_queries = ["CREATE TABLE teams (ID INT NOT NULL AUTO_INCREMENT, team_na
                     """
                     CREATE TABLE goals (
                         ID INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
-                        match_id_fk INT,
+                        match_id_fk CHAR(36),
                         player_id_fk INT,
                         team_id_fk INT,
                         FOREIGN KEY (match_id_fk) REFERENCES matches(ID),
@@ -116,7 +116,7 @@ creation_queries = ["CREATE TABLE teams (ID INT NOT NULL AUTO_INCREMENT, team_na
                     """
                     CREATE TABLE cards (
                         ID INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
-                        match_id_fk INT,
+                        match_id_fk CHAR(36),
                         player_id_fk INT,
                         team_id_fk INT,
                         type ENUM('yellow', 'red'),
