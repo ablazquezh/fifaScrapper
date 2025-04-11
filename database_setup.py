@@ -109,6 +109,8 @@ creation_queries = ["CREATE TABLE teams (ID INT NOT NULL AUTO_INCREMENT, team_na
                         match_id_fk CHAR(36),
                         player_id_fk INT,
                         team_id_fk INT,
+                        quantity INT,
+                        UNIQUE (match_id_fk, player_id_fk),
                         FOREIGN KEY (match_id_fk) REFERENCES matches(ID),
                         FOREIGN KEY (player_id_fk) REFERENCES players(ID),
                         FOREIGN KEY (team_id_fk) REFERENCES teams(ID)
@@ -224,9 +226,9 @@ creation_queries = ["CREATE TABLE teams (ID INT NOT NULL AUTO_INCREMENT, team_na
                         l.ID AS league_id,
                         l.league_name AS league_name,
                         p.ID AS player_id,
-                        p.name AS player_name,
+                        p.nickname AS player_name,
                         t.team_name AS team_name,
-                        CAST(COUNT(g.ID) AS CHAR) AS goals
+                        CAST(SUM(g.quantity) AS CHAR) AS goals
                     FROM goals g
                     JOIN players p ON g.player_id_fk = p.ID
                     JOIN teams t ON g.team_id_fk = t.ID
