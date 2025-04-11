@@ -123,6 +123,7 @@ creation_queries = ["CREATE TABLE teams (ID INT NOT NULL AUTO_INCREMENT, team_na
                         player_id_fk INT,
                         team_id_fk INT,
                         type ENUM('yellow', 'red'),
+                        UNIQUE (match_id_fk, player_id_fk),
                         FOREIGN KEY (match_id_fk) REFERENCES matches(ID),
                         FOREIGN KEY (player_id_fk) REFERENCES players(ID),
                         FOREIGN KEY (team_id_fk) REFERENCES teams(ID)
