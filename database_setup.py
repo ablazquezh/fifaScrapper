@@ -196,15 +196,15 @@ creation_queries = ["CREATE TABLE teams (ID INT NOT NULL AUTO_INCREMENT, team_na
                     -- Only include played matches
                     LEFT JOIN matches m ON (t.id = m.local_team_id_fk OR t.id = m.visitor_team_id_fk) AND m.played = TRUE
 
-                    -- Ensure all teams get a row in g even with 0 goals
+                    -- Adjusted goal calculation to use 'quantity'
                     LEFT JOIN (
                         SELECT 
                             m.id AS match_id_fk,
                             team.id AS team_id_fk,
-                            COUNT(g.id) AS team_goals,
+                            COALESCE(SUM(g.quantity), 0) AS team_goals,
                             (
-                                SELECT COUNT(*) 
-                                FROM goals g2 
+                                SELECT COALESCE(SUM(g2.quantity), 0)
+                                FROM goals g2
                                 WHERE g2.match_id_fk = m.id AND g2.team_id_fk != team.id
                             ) AS opponent_goals
                         FROM matches m
