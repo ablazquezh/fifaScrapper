@@ -128,7 +128,7 @@ creation_queries = ["CREATE TABLE teams (ID INT NOT NULL AUTO_INCREMENT, team_na
                         FOREIGN KEY (player_id_fk) REFERENCES players(ID),
                         FOREIGN KEY (team_id_fk) REFERENCES teams(ID)
                     );
-                    """,,
+                    """,
                     """
                     CREATE TABLE injuries (
                         ID INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
