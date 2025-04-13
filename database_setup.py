@@ -170,45 +170,48 @@ creation_queries = ["CREATE TABLE teams (ID INT NOT NULL AUTO_INCREMENT, team_na
                         t.team_name,
 
                         -- Count of played matches
-                        COALESCE(CAST(COUNT(m.id) AS CHAR), 0) AS n_played_matches,
+                        COALESCE(CAST(COUNT(m.id) AS CHAR), '0') AS n_played_matches,
 
                         -- Victories, draws, losses
                         COALESCE(CAST(SUM(CASE 
                             WHEN g.team_goals > g.opponent_goals THEN 1 ELSE 0 
-                        END) AS CHAR), 0) AS victories,
+                        END) AS CHAR), '0') AS victories,
 
                         COALESCE(CAST(SUM(CASE 
                             WHEN g.team_goals = g.opponent_goals THEN 1 ELSE 0 
-                        END) AS CHAR), 0) AS draws,
+                        END) AS CHAR), '0') AS draws,
 
                         COALESCE(CAST(SUM(CASE 
                             WHEN g.team_goals < g.opponent_goals THEN 1 ELSE 0 
-                        END) AS CHAR), 0) AS loses,
+                        END) AS CHAR), '0') AS loses,
 
                         -- Points
                         COALESCE(CAST(SUM(CASE 
                             WHEN g.team_goals > g.opponent_goals THEN 3
                             WHEN g.team_goals = g.opponent_goals THEN 1
                             ELSE 0 
-                        END) AS CHAR), 0) AS points,
+                        END) AS CHAR), '0') AS points,
 
                         -- Goal stats
-                        COALESCE(CAST(SUM(g.team_goals) AS CHAR), 0) AS goals_favor,
-                        COALESCE(CAST(SUM(g.opponent_goals) AS CHAR), 0) AS goals_against,
-                        COALESCE(CAST(SUM(g.team_goals - g.opponent_goals) AS CHAR), 0) AS goal_diff,
+                        COALESCE(CAST(SUM(g.team_goals) AS CHAR), '0') AS goals_favor,
+                        COALESCE(CAST(SUM(g.opponent_goals) AS CHAR), '0') AS goals_against,
+                        COALESCE(CAST(SUM(g.team_goals - g.opponent_goals) AS CHAR), '0') AS goal_diff,
 
                         -- Cards
-                        COALESCE(CAST(SUM(CASE WHEN c.type = 'yellow' THEN 1 ELSE 0 END) AS CHAR), 0) AS yellow_cards,
-                        COALESCE(CAST(SUM(CASE WHEN c.type = 'red' THEN 1 ELSE 0 END) AS CHAR), 0) AS red_cards
+                        COALESCE(CAST(SUM(CASE WHEN c.type = 'yellow' THEN 1 ELSE 0 END) AS CHAR), '0') AS yellow_cards,
+                        COALESCE(CAST(SUM(CASE WHEN c.type = 'red' THEN 1 ELSE 0 END) AS CHAR), '0') AS red_cards
 
                     FROM teams t
                     JOIN league_participants_view lpv ON t.id = lpv.team_id
                     JOIN leagues l ON lpv.league_ID_fk = l.id
 
-                    -- Only include played matches
-                    LEFT JOIN matches m ON (t.id = m.local_team_id_fk OR t.id = m.visitor_team_id_fk) AND m.played = TRUE
+                    -- Only include played matches from the current league
+                    LEFT JOIN matches m 
+                        ON (t.id = m.local_team_id_fk OR t.id = m.visitor_team_id_fk) 
+                        AND m.played = TRUE 
+                        AND m.league_id_fk = l.id
 
-                    -- Adjusted goal calculation to use 'quantity'
+                    -- Goal subquery scoped to the same league
                     LEFT JOIN (
                         SELECT 
                             m.id AS match_id_fk,
@@ -224,10 +227,11 @@ creation_queries = ["CREATE TABLE teams (ID INT NOT NULL AUTO_INCREMENT, team_na
                             SELECT id FROM teams
                         ) team ON team.id = m.local_team_id_fk OR team.id = m.visitor_team_id_fk
                         LEFT JOIN goals g ON g.match_id_fk = m.id AND g.team_id_fk = team.id
-                        WHERE m.played = TRUE
+                        WHERE m.played = TRUE AND m.league_id_fk IS NOT NULL -- you may add: AND m.league_id_fk = ??
                         GROUP BY m.id, team.id
                     ) g ON g.match_id_fk = m.id AND g.team_id_fk = t.id
 
+                    -- Only cards from matches in the current league
                     LEFT JOIN cards c ON c.match_id_fk = m.id AND c.team_id_fk = t.id
 
                     GROUP BY l.id, l.league_name, t.ID, t.team_name
