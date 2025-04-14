@@ -68,6 +68,7 @@ creation_queries = ["CREATE TABLE teams (ID INT NOT NULL AUTO_INCREMENT, team_na
                         team_id_fk INT,
                         league_id_fk INT,
                         transferred_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        UNIQUE (player_id_fk, team_id_fk, league_id_fk, transferred_at),
                         FOREIGN KEY (player_id_fk) REFERENCES players(ID),
                         FOREIGN KEY (league_id_fk) REFERENCES leagues(ID),
                         FOREIGN KEY (team_id_fk) REFERENCES teams(ID)
@@ -245,14 +246,30 @@ creation_queries = ["CREATE TABLE teams (ID INT NOT NULL AUTO_INCREMENT, team_na
                         l.league_name AS league_name,
                         p.ID AS player_id,
                         p.nickname AS player_name,
-                        t.team_name AS team_name,
+                        latest_team.team_name AS team_name,
                         CAST(SUM(g.quantity) AS CHAR) AS goals
                     FROM goals g
                     JOIN players p ON g.player_id_fk = p.ID
-                    JOIN teams t ON g.team_id_fk = t.ID
                     JOIN matches m ON g.match_id_fk = m.ID
                     JOIN leagues l ON m.league_id_fk = l.ID
-                    GROUP BY l.ID, l.league_name, p.ID, p.name, t.team_name
+
+                    -- Join to latest team based on latest transfer
+                    LEFT JOIN (
+                        SELECT 
+                            pt.player_id_fk,
+                            pt.league_id_fk,
+                            t.team_name
+                        FROM player_transfers pt
+                        JOIN teams t ON pt.team_id_fk = t.ID
+                        WHERE pt.transferred_at = (
+                            SELECT MAX(sub_pt.transferred_at)
+                            FROM player_transfers sub_pt
+                            WHERE sub_pt.player_id_fk = pt.player_id_fk
+                            AND sub_pt.league_id_fk = pt.league_id_fk
+                        )
+                    ) AS latest_team ON latest_team.player_id_fk = p.ID AND latest_team.league_id_fk = l.ID
+
+                    GROUP BY l.ID, l.league_name, p.ID, p.nickname, latest_team.team_name
                     ORDER BY l.ID, goals DESC;
                     """,
                     """
