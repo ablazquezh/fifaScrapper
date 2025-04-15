@@ -348,22 +348,16 @@ creation_queries = ["CREATE TABLE teams (ID INT NOT NULL AUTO_INCREMENT, team_na
                     """,
                     """
                     CREATE VIEW pro_league_teams AS
-                    SELECT 
-                        p.id AS player_id,
-                        p.nickname AS player_name,
-                        COALESCE(t_new.id, t_original.id) AS team_id,
-                        COALESCE(t_new.team_name, t_original.team_name) AS team_name,
-                        latest_transfer.league_id_fk as league_id
+                    SELECT
+                    p.id AS player_id,
+                    p.nickname as player_name,
+                    p.game AS game,
+                    p.team_id_fk AS team_id,
+                    t.team_name as team_name
                     FROM players p
-                    LEFT JOIN teams t_original ON p.team_id_fk = t_original.id
-                    LEFT JOIN player_transfers latest_transfer
-                        ON p.id = latest_transfer.player_id_fk
-                        AND latest_transfer.transferred_at = (
-                            SELECT MAX(transferred_at) 
-                            FROM player_transfers 
-                            WHERE player_id_fk = p.id
-                        )
-                    LEFT JOIN teams t_new ON latest_transfer.team_id_fk = t_new.id;
+                    JOIN teams t
+                    ON p.team_id_fk = t.id
+                    AND p.game = t.game;
                     """,
                     """
                     CREATE VIEW raw_league_teams AS
