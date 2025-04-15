@@ -534,6 +534,7 @@ creation_queries = ["CREATE TABLE teams (ID INT NOT NULL AUTO_INCREMENT, team_na
                         restricted_budget INT,
                         game VARCHAR(10),
                         league_id_fk INT,
+                        UNIQUE (team_name, game, league_id_fk),
                         FOREIGN KEY (league_ID_fk) REFERENCES leagues(ID)
                     );
                     """,
