@@ -34,6 +34,8 @@ creation_queries = ["CREATE TABLE teams (ID INT NOT NULL AUTO_INCREMENT, team_na
                         big_team_multiplier INT,
                         medium_team_multiplier INT,
                         small_team_multiplier INT,
+                        win_bonus INT,
+                        draw_bonus INT,
                         game VARCHAR(50),
                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                         UNIQUE (league_name)
@@ -380,6 +382,221 @@ creation_queries = ["CREATE TABLE teams (ID INT NOT NULL AUTO_INCREMENT, team_na
                             WHERE player_id_fk = p.id
                         )
                     JOIN teams t_new ON latest_transfer.team_id_fk = t_new.id;
+                    """,
+                    """
+                    CREATE VIEW team_stats AS
+
+                    WITH player_assignments AS (
+
+                        -- Jugadores en su equipo original
+
+                        SELECT 
+
+                            p.id AS player_id,
+
+                            p.team_id_fk,
+
+                            NULL AS league_id_fk,
+
+                            p.average,
+
+                            p.global_position
+
+                        FROM players p
+
+                        UNION ALL
+
+                        -- Jugadores reasignados en `player_transfers`
+
+                        SELECT 
+
+                            p.id AS player_id,
+
+                            pt.team_id_fk,
+
+                            pt.league_id_fk,
+
+                            p.average,
+
+                            p.global_position
+
+                        FROM players p
+
+                        JOIN player_transfers pt ON p.id = pt.player_id_fk
+
+                    ), 
+
+                    team_base AS (
+
+                        SELECT 
+
+                            team_id_fk,
+
+                            league_id_fk,
+
+                            AVG(average) AS team_avg,
+
+                            STDDEV(average) AS team_std
+
+                        FROM player_assignments
+
+                        GROUP BY team_id_fk, league_id_fk
+
+                    ),
+
+                    filtered_avg AS (
+
+                        SELECT 
+
+                            pa.team_id_fk,
+
+                            pa.league_id_fk,
+
+                            AVG(average) AS team_avg_std
+
+                        FROM player_assignments pa
+
+                        JOIN team_base tb ON pa.team_id_fk = tb.team_id_fk AND pa.league_id_fk <=> tb.league_id_fk
+
+                        WHERE pa.average >= (tb.team_avg - tb.team_std)
+
+                        GROUP BY pa.team_id_fk, pa.league_id_fk
+
+                    )
+
+                    SELECT 
+
+                        pa.team_id_fk, 
+
+                        t.team_name,
+
+                        tb.league_id_fk,
+
+                        l.league_name AS league_name,
+
+                        tb.team_avg,
+
+                        fa.team_avg_std,
+
+                        
+
+                        -- Estadísticas PIVOTEADAS por posición:
+
+                        AVG(CASE WHEN pa.global_position = 'Portero' THEN pa.average END) AS GK_avg,
+
+                        AVG(CASE WHEN pa.global_position = 'Defensa' THEN pa.average END) AS DEF_avg,
+
+                        AVG(CASE WHEN pa.global_position = 'Centrocampista' THEN pa.average END) AS MID_avg,
+
+                        AVG(CASE WHEN pa.global_position = 'Delantero' THEN pa.average END) AS FWD_avg,
+
+
+
+                        -- Media solo de los jugadores que cumplen el filtro de desviación estándar
+
+                        AVG(CASE WHEN pa.global_position = 'Portero' AND pa.average >= (tb.team_avg - tb.team_std) THEN pa.average END) AS GK_avg_std,
+
+                        AVG(CASE WHEN pa.global_position = 'Defensa' AND pa.average >= (tb.team_avg - tb.team_std) THEN pa.average END) AS DEF_avg_std,
+
+                        AVG(CASE WHEN pa.global_position = 'Centrocampista' AND pa.average >= (tb.team_avg - tb.team_std) THEN pa.average END) AS MID_avg_std,
+
+                        AVG(CASE WHEN pa.global_position = 'Delantero' AND pa.average >= (tb.team_avg - tb.team_std) THEN pa.average END) AS FWD_avg_std,
+
+
+
+                        t.game,
+
+                        t.team_league,
+
+                        t.team_country
+
+                    FROM player_assignments pa
+
+                    JOIN teams t ON pa.team_id_fk = t.id
+
+                    LEFT JOIN leagues l ON pa.league_id_fk = l.id
+
+                    JOIN team_base tb ON pa.team_id_fk = tb.team_id_fk AND pa.league_id_fk <=> tb.league_id_fk
+
+                    JOIN filtered_avg fa ON pa.team_id_fk = fa.team_id_fk AND pa.league_id_fk <=> fa.league_id_fk
+
+                    GROUP BY pa.team_id_fk, t.team_name, tb.league_id_fk, l.league_name, tb.team_avg, fa.team_avg_std
+
+                    ORDER BY l.league_name, t.team_name;
+
+                    """,
+                    """
+                    CREATE TABLE team_budget (
+                        team_id INT PRIMARY KEY,
+                        team_name VARCHAR(100),
+                        team_avg_std DECIMAL(10, 2),
+                        budget INT,  
+                        restricted_budget INT,
+                        game VARCHAR(10),
+                        league_id_fk INT,
+                        FOREIGN KEY (league_ID_fk) REFERENCES leagues(ID)
+                    );
+                    """,
+                    """
+                    INSERT INTO team_budget (team_id, team_name, team_avg_std, budget, restricted_budget, game)
+                    WITH team_avg_std_cte AS (
+                        SELECT 
+                            team_id_fk,
+                            FLOOR(team_avg_std) AS team_avg_std
+                        FROM team_stats
+                    ),
+                    teams_with_game AS (
+                        SELECT 
+                            t.id AS team_id,
+                            t.team_name,
+                            t.game
+                        FROM teams t
+                    ),
+                    qualified_players_global AS (
+                        SELECT 
+                            t.team_id,
+                            p.value
+                        FROM players p
+                        JOIN team_avg_std_cte tas ON TRUE
+                        JOIN teams_with_game t ON t.team_id = tas.team_id_fk
+                        WHERE p.average >= tas.team_avg_std
+                        AND p.game = t.game
+                    ),
+                    restricted_players_global AS (
+                        SELECT 
+                            t.team_id,
+                            p.value
+                        FROM players p
+                        JOIN team_avg_std_cte tas ON TRUE
+                        JOIN teams_with_game t ON t.team_id = tas.team_id_fk
+                        WHERE p.average >= (tas.team_avg_std - 5)
+                        AND p.game = t.game
+                    ),
+                    team_budget_calc AS (
+                        SELECT 
+                            team_id,
+                            ROUND(AVG(value), 0) AS budget
+                        FROM qualified_players_global
+                        GROUP BY team_id
+                    ),
+                    restricted_budget_calc AS (
+                        SELECT 
+                            team_id,
+                            ROUND(AVG(value), 0) AS restricted_budget
+                        FROM restricted_players_global
+                        GROUP BY team_id
+                    )
+                    SELECT 
+                        t.ID AS team_id,
+                        t.team_name,
+                        tas.team_avg_std,
+                        tb.budget,
+                        rb.restricted_budget,
+                        t.game
+                    FROM teams t
+                    LEFT JOIN team_avg_std_cte tas ON t.ID = tas.team_id_fk
+                    LEFT JOIN team_budget_calc tb ON t.ID = tb.team_id
+                    LEFT JOIN restricted_budget_calc rb ON t.ID = rb.team_id;
                     """
                     ]
 
