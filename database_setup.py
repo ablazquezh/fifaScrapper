@@ -536,62 +536,74 @@ creation_queries = ["CREATE TABLE teams (ID INT NOT NULL AUTO_INCREMENT, team_na
                     INSERT INTO team_budget (team_id, team_name, team_avg_std, budget, restricted_budget, game)
                     WITH team_avg_std_cte AS (
                         SELECT 
-                            team_id_fk,
-                            FLOOR(team_avg_std) AS team_avg_std
-                        FROM team_stats
-                    ),
-                    teams_with_game AS (
-                        SELECT 
                             t.id AS team_id,
                             t.team_name,
-                            t.game
+                            t.game,
+                            FLOOR(ts.team_avg_std) AS team_avg_std
                         FROM teams t
+                        JOIN team_stats ts ON t.id = ts.team_id_fk
+                        WHERE ts.league_id_fk IS NULL
                     ),
-                    qualified_players_global AS (
-                        SELECT 
-                            t.team_id,
+                    distinct_std_game AS (
+                        SELECT DISTINCT
+                            game,
+                            team_avg_std
+                        FROM team_avg_std_cte
+                    ),
+                    qualified_players_grouped AS (
+                        SELECT
+                            sg.game,
+                            sg.team_avg_std,
                             p.value
                         FROM players p
-                        JOIN team_avg_std_cte tas ON TRUE
-                        JOIN teams_with_game t ON t.team_id = tas.team_id_fk
-                        WHERE p.average >= tas.team_avg_std
-                        AND p.game = t.game
+                        JOIN distinct_std_game sg 
+                        ON p.game = sg.game AND (
+                        (sg.team_avg_std >= 81 AND p.average >= sg.team_avg_std - 4) OR
+                        (sg.team_avg_std < 81 AND p.average >= sg.team_avg_std)  OR
+                        (sg.team_avg_std > 75 AND p.average >= sg.team_avg_std - 2) 
+                    )
                     ),
-                    restricted_players_global AS (
-                        SELECT 
-                            t.team_id,
+                    restricted_players_grouped AS (
+                        SELECT
+                            sg.game,
+                            sg.team_avg_std,
                             p.value
                         FROM players p
-                        JOIN team_avg_std_cte tas ON TRUE
-                        JOIN teams_with_game t ON t.team_id = tas.team_id_fk
-                        WHERE p.average >= (tas.team_avg_std - 5)
-                        AND p.game = t.game
+                        JOIN distinct_std_game sg 
+                        ON p.game = sg.game AND (
+                        (sg.team_avg_std > 81 AND p.average >= sg.team_avg_std - 4) OR
+                        (sg.team_avg_std <= 81 AND p.average >= sg.team_avg_std)  OR
+                        (sg.team_avg_std > 75 AND p.average >= sg.team_avg_std - 2) 
+                    )
                     ),
-                    team_budget_calc AS (
-                        SELECT 
-                            team_id,
+                    budget_calc AS (
+                        SELECT
+                            game,
+                            team_avg_std,
                             ROUND(AVG(value), 0) AS budget
-                        FROM qualified_players_global
-                        GROUP BY team_id
+                        FROM qualified_players_grouped
+                        GROUP BY game, team_avg_std
                     ),
                     restricted_budget_calc AS (
-                        SELECT 
-                            team_id,
+                        SELECT
+                            game,
+                            team_avg_std,
                             ROUND(AVG(value), 0) AS restricted_budget
-                        FROM restricted_players_global
-                        GROUP BY team_id
+                        FROM restricted_players_grouped
+                        GROUP BY game, team_avg_std
                     )
-                    SELECT 
-                        t.ID AS team_id,
+                    SELECT
+                        t.team_id,
                         t.team_name,
-                        tas.team_avg_std,
-                        tb.budget,
+                        t.team_avg_std,
+                        b.budget,
                         rb.restricted_budget,
                         t.game
-                    FROM teams t
-                    LEFT JOIN team_avg_std_cte tas ON t.ID = tas.team_id_fk
-                    LEFT JOIN team_budget_calc tb ON t.ID = tb.team_id
-                    LEFT JOIN restricted_budget_calc rb ON t.ID = rb.team_id;
+                    FROM team_avg_std_cte t
+                    LEFT JOIN budget_calc b 
+                    ON b.team_avg_std = t.team_avg_std AND b.game = t.game
+                    LEFT JOIN restricted_budget_calc rb 
+                    ON rb.team_avg_std = t.team_avg_std AND rb.game = t.game;
                     """
                     ]
 
