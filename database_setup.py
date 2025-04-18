@@ -521,7 +521,8 @@ creation_queries = ["CREATE TABLE teams (ID INT NOT NULL AUTO_INCREMENT, team_na
                     """,
                     """
                     CREATE TABLE team_budget (
-                        team_id INT PRIMARY KEY,
+                        ID INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
+                        team_id INT,
                         team_name VARCHAR(100),
                         team_avg_std DECIMAL(10, 2),
                         budget INT,  
