@@ -152,6 +152,17 @@ creation_queries = ["CREATE TABLE teams (ID INT NOT NULL AUTO_INCREMENT, team_na
                     );
                     """,
                     """
+                    CREATE TABLE bonus (
+                        ID INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
+                        match_id_fk CHAR(36),
+                        team_id_fk INT,
+                        quantity INT,
+                        UNIQUE (match_id_fk, team_id_fk),
+                        FOREIGN KEY (match_id_fk) REFERENCES matches(ID),
+                        FOREIGN KEY (team_id_fk) REFERENCES teams(ID)
+                    );
+                    """,
+                    """
                     CREATE VIEW played_matches AS
                     SELECT 
                         m.ID AS match_id,
