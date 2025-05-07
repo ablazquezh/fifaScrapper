@@ -328,41 +328,101 @@ creation_queries = ["CREATE TABLE teams (ID INT NOT NULL AUTO_INCREMENT, team_na
                     ORDER BY l.ID, goals DESC;
                     """,
                     """
-                    CREATE VIEW user_historic_stats AS
-                    SELECT 
-                        u.ID AS user_id,
-                        u.user_name AS user_name,
-                        COALESCE(l.type, 'both') AS league_type,
+                    CREATE VIEW user_history AS
+                    WITH goal_stats AS (
+                        SELECT
+                            m.ID AS match_id_fk,
+                            m.local_team_id_fk,
+                            m.visitor_team_id_fk,
+                            SUM(CASE WHEN g.team_id_fk = m.local_team_id_fk THEN g.quantity ELSE 0 END) AS local_goals,
+                            SUM(CASE WHEN g.team_id_fk = m.visitor_team_id_fk THEN g.quantity ELSE 0 END) AS visitor_goals
+                        FROM matches m
+                        LEFT JOIN goals g ON g.match_id_fk = m.ID
+                        WHERE m.played = 1
+                        GROUP BY m.ID, m.local_team_id_fk, m.visitor_team_id_fk
+                    ),
+                    user_matches AS (
+                        SELECT
+                            lp.user_ID_fk AS user_id,
+                            lp.team_ID_fk AS team_id,
+                            l.type AS league_type,
+                            m.*,
+                            gs.local_goals,
+                            gs.visitor_goals
+                        FROM league_participants lp
+                        JOIN matches m ON lp.team_ID_fk IN (m.local_team_id_fk, m.visitor_team_id_fk)
+                        JOIN leagues l ON m.league_id_fk = l.ID
+                        JOIN goal_stats gs ON gs.match_id_fk = m.ID
+                        WHERE m.played = 1
+                    ),
+                    card_stats AS (
+                        SELECT
+                            lp.user_ID_fk AS user_id,
+                            l.type AS league_type,
+                            SUM(CASE WHEN c.type = 'yellow' THEN 1 ELSE 0 END) AS yellow_cards,
+                            SUM(CASE WHEN c.type = 'red' THEN 1 ELSE 0 END) AS red_cards
+                        FROM cards c
+                        JOIN matches m ON c.match_id_fk = m.ID
+                        JOIN league_participants lp ON c.team_id_fk = lp.team_ID_fk
+                        JOIN leagues l ON m.league_id_fk = l.ID
+                        WHERE m.played = 1
+                        GROUP BY lp.user_ID_fk, l.type
+                    )
 
-                        -- Total stats across all teams managed by the user
-                        SUM(lt.points) AS total_points,
-                        SUM(lt.goals_favor) AS total_goals_scored,
-                        SUM(lt.goals_against) AS total_goals_received,
-                        SUM(lt.goal_diff) AS total_goal_difference,
+                    SELECT
+                        um.user_id,
+                        u.user_name,
+                        um.league_type,
 
-                        -- Count times user finished in specific positions
-                        SUM(CASE WHEN lt.final_rank = 1 THEN 1 ELSE 0 END) AS times_first_place,
-                        SUM(CASE WHEN lt.final_rank = 2 THEN 1 ELSE 0 END) AS times_second_place,
-                        SUM(CASE WHEN lt.final_rank = 3 THEN 1 ELSE 0 END) AS times_third_place
+                        -- POINTS
+                        SUM(
+                            CASE 
+                                WHEN um.team_id = um.local_team_id_fk AND um.local_goals > um.visitor_goals THEN 3
+                                WHEN um.team_id = um.visitor_team_id_fk AND um.visitor_goals > um.local_goals THEN 3
+                                WHEN um.local_goals = um.visitor_goals AND um.team_id IN (um.local_team_id_fk, um.visitor_team_id_fk) THEN 1
+                                ELSE 0
+                            END
+                        ) AS total_points,
 
-                    FROM users u
-                    JOIN league_participants lp ON lp.user_ID_fk = u.ID
-                    JOIN leagues l ON lp.league_ID_fk = l.ID
-                    JOIN (
-                        -- Get final league rankings
-                        SELECT 
-                            league_id,
-                            team_id,
-                            points,
-                            goals_favor,
-                            goals_against,
-                            goal_diff,
-                            RANK() OVER (PARTITION BY league_id ORDER BY points DESC, goal_diff DESC, goals_favor DESC) AS final_rank
-                        FROM league_table  
-                    ) lt ON lt.team_id = lp.team_ID_fk  -- Link to the correct teams from league_participants
+                        -- VICTORIES
+                        SUM(
+                            CASE 
+                                WHEN um.team_id = um.local_team_id_fk AND um.local_goals > um.visitor_goals THEN 1
+                                WHEN um.team_id = um.visitor_team_id_fk AND um.visitor_goals > um.local_goals THEN 1
+                                ELSE 0
+                            END
+                        ) AS victories,
 
-                    GROUP BY u.ID, u.user_name, l.type WITH ROLLUP
-                    ORDER BY total_points DESC;
+                        -- DRAWS
+                        SUM(
+                            CASE 
+                                WHEN um.local_goals = um.visitor_goals AND um.team_id IN (um.local_team_id_fk, um.visitor_team_id_fk) THEN 1
+                                ELSE 0
+                            END
+                        ) AS draws,
+
+                        -- LOSSES
+                        SUM(
+                            CASE 
+                                WHEN um.team_id = um.local_team_id_fk AND um.local_goals < um.visitor_goals THEN 1
+                                WHEN um.team_id = um.visitor_team_id_fk AND um.visitor_goals < um.local_goals THEN 1
+                                ELSE 0
+                            END
+                        ) AS losses,
+
+                        -- MATCHES PLAYED
+                        COUNT(*) AS matches_played,
+
+                        -- CARDS
+                        MAX(COALESCE(cs.yellow_cards, 0)) AS yellow_cards,
+                        MAX(COALESCE(cs.red_cards, 0)) AS red_cards
+
+                    FROM user_matches um
+                    JOIN users u ON um.user_id = u.ID
+                    LEFT JOIN card_stats cs ON cs.user_id = um.user_id AND cs.league_type = um.league_type
+
+                    GROUP BY um.user_id, u.user_name, um.league_type
+                    ORDER BY um.league_type, total_points DESC;
                     """,
                     """
                     CREATE VIEW player_positions AS
