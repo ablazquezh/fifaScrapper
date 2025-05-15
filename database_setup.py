@@ -712,6 +712,20 @@ creation_queries = ["CREATE TABLE teams (ID INT NOT NULL AUTO_INCREMENT, team_na
                     ON b.team_avg_std = t.team_avg_std AND b.game = t.game
                     LEFT JOIN restricted_budget_calc rb 
                     ON rb.team_avg_std = t.team_avg_std AND rb.game = t.game;
+                    """,
+                    """
+                    CREATE TABLE diagram_positions (
+                        ID INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
+                        player_id_fk INT,
+                        team_id_fk INT,
+                        league_id_fk INT,
+                        coord_x DECIMAL,
+                        coord_y DECIMAL,
+                        UNIQUE (player_id_fk, league_id_fk),
+                        FOREIGN KEY (player_id_fk) REFERENCES players(ID),
+                        FOREIGN KEY (team_id_fk) REFERENCES teams(ID),
+                        FOREIGN KEY (league_id_fk) REFERENCES leagues(ID)
+                    );
                     """
                     ]
 
