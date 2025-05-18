@@ -473,14 +473,15 @@ creation_queries = ["CREATE TABLE teams (ID INT NOT NULL AUTO_INCREMENT, team_na
                         p.nickname AS player_name,
                         t_new.id AS team_id,
                         t_new.team_name AS team_name,
-                        latest_transfer.league_id_fk as league_id
+                        latest_transfer.league_id_fk AS league_id
                     FROM players p
                     JOIN player_transfers latest_transfer
                         ON p.id = latest_transfer.player_id_fk
                         AND latest_transfer.transferred_at = (
-                            SELECT MAX(transferred_at) 
-                            FROM player_transfers 
-                            WHERE player_id_fk = p.id
+                            SELECT MAX(pt2.transferred_at)
+                            FROM player_transfers pt2
+                            WHERE pt2.player_id_fk = p.id
+                            AND pt2.league_id_fk = latest_transfer.league_id_fk
                         )
                     JOIN teams t_new ON latest_transfer.team_id_fk = t_new.id;
                     """,
