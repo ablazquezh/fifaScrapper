@@ -411,7 +411,7 @@ creation_queries = ["CREATE TABLE teams (ID INT NOT NULL AUTO_INCREMENT, team_na
                         ) AS losses,
 
                         -- MATCHES PLAYED
-                        COUNT(*) AS matches_played,
+                        CAST(COUNT(*) AS CHAR)  AS matches_played,
 
                         -- CARDS
                         MAX(COALESCE(cs.yellow_cards, 0)) AS yellow_cards,
@@ -422,7 +422,7 @@ creation_queries = ["CREATE TABLE teams (ID INT NOT NULL AUTO_INCREMENT, team_na
                     LEFT JOIN card_stats cs ON cs.user_id = um.user_id AND cs.league_type = um.league_type
 
                     GROUP BY um.user_id, u.user_name, um.league_type
-                    ORDER BY um.league_type, total_points DESC;
+ORDER BY um.league_type, total_points DESC;
                     """,
                     """
                     CREATE VIEW player_positions AS
