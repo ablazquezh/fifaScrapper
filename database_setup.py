@@ -329,7 +329,7 @@ creation_queries = ["CREATE TABLE teams (ID INT NOT NULL AUTO_INCREMENT, team_na
                     """,
                     """
                     CREATE VIEW user_history AS
-                    WITH goal_stats AS (
+WITH goal_stats AS (
                         SELECT
                             m.ID AS match_id_fk,
                             m.local_team_id_fk,
@@ -350,7 +350,7 @@ creation_queries = ["CREATE TABLE teams (ID INT NOT NULL AUTO_INCREMENT, team_na
                             gs.local_goals,
                             gs.visitor_goals
                         FROM league_participants lp
-                        JOIN matches m ON lp.team_ID_fk IN (m.local_team_id_fk, m.visitor_team_id_fk)
+                        JOIN matches m ON lp.team_ID_fk IN (m.local_team_id_fk, m.visitor_team_id_fk) AND lp.league_ID_fk = m.league_id_fk
                         JOIN leagues l ON m.league_id_fk = l.ID
                         JOIN goal_stats gs ON gs.match_id_fk = m.ID
                         WHERE m.played = 1
@@ -409,9 +409,38 @@ creation_queries = ["CREATE TABLE teams (ID INT NOT NULL AUTO_INCREMENT, team_na
                                 ELSE 0
                             END
                         ) AS losses,
+						
+						-- GOALS SCORED (goals_favor)
+						CAST(SUM(
+							CASE 
+								WHEN um.team_id = um.local_team_id_fk THEN COALESCE(um.local_goals,0)
+								WHEN um.team_id = um.visitor_team_id_fk THEN COALESCE(um.visitor_goals,0)
+								ELSE 0
+							END
+						) AS CHAR) AS goals_favor,
+
+						-- GOALS AGAINST
+						CAST(SUM(
+							CASE 
+								WHEN um.team_id = um.local_team_id_fk THEN COALESCE(um.visitor_goals,0)
+								WHEN um.team_id = um.visitor_team_id_fk THEN COALESCE(um.local_goals,0)
+								ELSE 0
+							END
+						) AS CHAR) AS goals_against,
+
+						-- GOAL DIFFERENCE (favor - against)
+						CAST(
+						  SUM(
+							CASE 
+								WHEN um.team_id = um.local_team_id_fk THEN COALESCE(um.local_goals,0) - COALESCE(um.visitor_goals,0)
+								WHEN um.team_id = um.visitor_team_id_fk THEN COALESCE(um.visitor_goals,0) - COALESCE(um.local_goals,0)
+								ELSE 0
+							END
+						  ) AS CHAR
+						) AS goal_diff,
 
                         -- MATCHES PLAYED
-                        COUNT(*) AS matches_played,
+                        CAST(COUNT(*) AS CHAR)  AS matches_played,
 
                         -- CARDS
                         MAX(COALESCE(cs.yellow_cards, 0)) AS yellow_cards,
@@ -422,7 +451,7 @@ creation_queries = ["CREATE TABLE teams (ID INT NOT NULL AUTO_INCREMENT, team_na
                     LEFT JOIN card_stats cs ON cs.user_id = um.user_id AND cs.league_type = um.league_type
 
                     GROUP BY um.user_id, u.user_name, um.league_type
-                    ORDER BY um.league_type, total_points DESC;
+ORDER BY um.league_type, total_points DESC;
                     """,
                     """
                     CREATE VIEW player_positions AS

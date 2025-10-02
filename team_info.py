@@ -11,9 +11,9 @@ from bs4 import BeautifulSoup
 import pandas as pd
 import requests
 
-game_name = ["fifa13", "fifa19"]
-base_url = ["https://sofifa.com/teams?type=club&r=130034&set=true&hl=es-ES",
-            "https://sofifa.com/teams?type=club&r=190075&set=true&hl=es-ES"]
+game_name = ["fc25"]
+base_url = [
+            "https://sofifa.com/teams?type=club&r=250038&set=true&hl=es-ES"]
 
 options = webdriver.ChromeOptions()
 #options.add_argument("--headless=new")
