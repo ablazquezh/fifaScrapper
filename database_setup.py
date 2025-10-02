@@ -54,7 +54,7 @@ creation_queries = ["CREATE TABLE teams (ID INT NOT NULL AUTO_INCREMENT, team_na
                         user_ID_fk INT, 
                         team_ID_fk INT,
                         PRIMARY KEY (ID), 
-                        FOREIGN KEY (league_ID_fk) REFERENCES leagues(ID), 
+                        FOREIGN KEY (league_ID_fk) REFERENCES leagues(ID) ON DELETE CASCADE, 
                         FOREIGN KEY (user_ID_fk) REFERENCES users(ID),
                         FOREIGN KEY (team_ID_fk) REFERENCES teams(ID)
                     );
@@ -65,7 +65,7 @@ creation_queries = ["CREATE TABLE teams (ID INT NOT NULL AUTO_INCREMENT, team_na
                         league_id_fk INT,
                         player_id_fk INT,
                         player_market_status ENUM('sold', 'available'),
-                        FOREIGN KEY (league_id_fk) REFERENCES leagues(ID),
+                        FOREIGN KEY (league_id_fk) REFERENCES leagues(ID) ON DELETE CASCADE,
                         FOREIGN KEY (player_id_fk) REFERENCES players(ID)
                     );
                     """,
@@ -78,7 +78,7 @@ creation_queries = ["CREATE TABLE teams (ID INT NOT NULL AUTO_INCREMENT, team_na
                         transferred_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                         UNIQUE (player_id_fk, team_id_fk, league_id_fk, transferred_at),
                         FOREIGN KEY (player_id_fk) REFERENCES players(ID),
-                        FOREIGN KEY (league_id_fk) REFERENCES leagues(ID),
+                        FOREIGN KEY (league_id_fk) REFERENCES leagues(ID) ON DELETE CASCADE,
                         FOREIGN KEY (team_id_fk) REFERENCES teams(ID)
                     );
                     """,
@@ -107,7 +107,7 @@ creation_queries = ["CREATE TABLE teams (ID INT NOT NULL AUTO_INCREMENT, team_na
                         league_id_fk INT,
                         matchday INT,
                         played BOOL,
-                        UNIQUE (local_team_id_fk, visitor_team_id_fk, league_id_fk),
+                        UNIQUE (local_team_id_fk, visitor_team_id_fk, league_id_fk) ON DELETE CASCADE,
                         FOREIGN KEY (local_team_id_fk) REFERENCES teams(ID),
                         FOREIGN KEY (visitor_team_id_fk) REFERENCES teams(ID),
                         FOREIGN KEY (league_id_fk) REFERENCES leagues(ID)
@@ -121,7 +121,7 @@ creation_queries = ["CREATE TABLE teams (ID INT NOT NULL AUTO_INCREMENT, team_na
                         team_id_fk INT,
                         quantity INT,
                         UNIQUE (match_id_fk, player_id_fk),
-                        FOREIGN KEY (match_id_fk) REFERENCES matches(ID),
+                        FOREIGN KEY (match_id_fk) REFERENCES matches(ID) ON DELETE CASCADE,
                         FOREIGN KEY (player_id_fk) REFERENCES players(ID),
                         FOREIGN KEY (team_id_fk) REFERENCES teams(ID)
                     );
@@ -134,7 +134,7 @@ creation_queries = ["CREATE TABLE teams (ID INT NOT NULL AUTO_INCREMENT, team_na
                         team_id_fk INT,
                         type ENUM('yellow', 'red'),
                         UNIQUE (match_id_fk, player_id_fk),
-                        FOREIGN KEY (match_id_fk) REFERENCES matches(ID),
+                        FOREIGN KEY (match_id_fk) REFERENCES matches(ID) ON DELETE CASCADE,
                         FOREIGN KEY (player_id_fk) REFERENCES players(ID),
                         FOREIGN KEY (team_id_fk) REFERENCES teams(ID)
                     );
@@ -146,7 +146,7 @@ creation_queries = ["CREATE TABLE teams (ID INT NOT NULL AUTO_INCREMENT, team_na
                         player_id_fk INT,
                         team_id_fk INT,
                         UNIQUE (match_id_fk, player_id_fk),
-                        FOREIGN KEY (match_id_fk) REFERENCES matches(ID),
+                        FOREIGN KEY (match_id_fk) REFERENCES matches(ID) ON DELETE CASCADE,
                         FOREIGN KEY (player_id_fk) REFERENCES players(ID),
                         FOREIGN KEY (team_id_fk) REFERENCES teams(ID)
                     );
@@ -158,7 +158,7 @@ creation_queries = ["CREATE TABLE teams (ID INT NOT NULL AUTO_INCREMENT, team_na
                         team_id_fk INT,
                         quantity INT,
                         UNIQUE (match_id_fk, team_id_fk),
-                        FOREIGN KEY (match_id_fk) REFERENCES matches(ID),
+                        FOREIGN KEY (match_id_fk) REFERENCES matches(ID) ON DELETE CASCADE,
                         FOREIGN KEY (team_id_fk) REFERENCES teams(ID)
                     );
                     """,
@@ -754,7 +754,7 @@ ORDER BY um.league_type, total_points DESC;
                         UNIQUE (player_id_fk, league_id_fk),
                         FOREIGN KEY (player_id_fk) REFERENCES players(ID),
                         FOREIGN KEY (team_id_fk) REFERENCES teams(ID),
-                        FOREIGN KEY (league_id_fk) REFERENCES leagues(ID)
+                        FOREIGN KEY (league_id_fk) REFERENCES leagues(ID) ON DELETE CASCADE
                     );
                     """
                     ]
