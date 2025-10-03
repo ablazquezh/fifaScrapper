@@ -185,109 +185,108 @@ creation_queries = ["CREATE TABLE teams (ID INT NOT NULL AUTO_INCREMENT, team_na
                     """
                     CREATE VIEW league_table AS
                     WITH goal_stats AS (
-                        SELECT
-                            m.ID AS match_id_fk,
-                            m.local_team_id_fk,
-                            m.visitor_team_id_fk,
-                            SUM(CASE WHEN g.team_id_fk = m.local_team_id_fk THEN g.quantity ELSE 0 END) AS local_goals,
-                            SUM(CASE WHEN g.team_id_fk = m.visitor_team_id_fk THEN g.quantity ELSE 0 END) AS visitor_goals
-                        FROM matches m
-                        LEFT JOIN goals g ON g.match_id_fk = m.ID
-                        WHERE m.played = 1
-                        GROUP BY m.ID, m.local_team_id_fk, m.visitor_team_id_fk
+                    SELECT
+                        m.ID AS match_id_fk,
+                        m.local_team_id_fk,
+                        m.visitor_team_id_fk,
+                        SUM(CASE WHEN g.team_id_fk = m.local_team_id_fk THEN g.quantity ELSE 0 END) AS local_goals,
+                        SUM(CASE WHEN g.team_id_fk = m.visitor_team_id_fk THEN g.quantity ELSE 0 END) AS visitor_goals
+                    FROM matches m
+                    LEFT JOIN goals g ON g.match_id_fk = m.ID
+                    WHERE m.played = 1
+                    GROUP BY m.ID, m.local_team_id_fk, m.visitor_team_id_fk
                     ),
                     card_stats AS (
-                        SELECT
-                            c.team_id_fk,
-                            SUM(CASE WHEN c.type = 'yellow' THEN 1 ELSE 0 END) AS yellow_cards,
-                            SUM(CASE WHEN c.type = 'red' THEN 1 ELSE 0 END) AS red_cards
-                        FROM cards c
-                        JOIN matches m ON c.match_id_fk = m.ID
-                        WHERE m.played = 1
-                        GROUP BY c.team_id_fk
+                    SELECT
+                        c.team_id_fk,
+                        m.league_id_fk,
+                        SUM(CASE WHEN c.type = 'yellow' THEN 1 ELSE 0 END) AS yellow_cards,
+                        SUM(CASE WHEN c.type = 'red' THEN 1 ELSE 0 END) AS red_cards
+                    FROM cards c
+                    JOIN matches m ON c.match_id_fk = m.ID
+                    WHERE m.played = 1
+                    GROUP BY c.team_id_fk, m.league_id_fk
                     )
 
                     SELECT
-                        t.ID AS team_id,
-                        t.team_name,
-                        m.league_id_fk as league_id,
+                    t.ID AS team_id,
+                    t.team_name,
+                    m.league_id_fk AS league_id,
 
-                        -- POINTS
-                        CAST(SUM(
-                            CASE 
-                                WHEN t.ID = m.local_team_id_fk AND gs.local_goals > gs.visitor_goals THEN 3
-                                WHEN t.ID = m.visitor_team_id_fk AND gs.visitor_goals > gs.local_goals THEN 3
-                                WHEN gs.local_goals = gs.visitor_goals AND t.ID IN (m.local_team_id_fk, m.visitor_team_id_fk) THEN 1
-                                ELSE 0
-                            END
-                        ) as CHAR) AS points,
+                    -- POINTS
+                    SUM(
+                        CASE 
+                        WHEN t.ID = m.local_team_id_fk AND gs.local_goals > gs.visitor_goals THEN 3
+                        WHEN t.ID = m.visitor_team_id_fk AND gs.visitor_goals > gs.local_goals THEN 3
+                        WHEN gs.local_goals = gs.visitor_goals AND t.ID IN (m.local_team_id_fk, m.visitor_team_id_fk) THEN 1
+                        ELSE 0
+                        END
+                    ) AS points,
 
-                        -- VICTORIES
-                        CAST(SUM(
-                            CASE 
-                                WHEN t.ID = m.local_team_id_fk AND gs.local_goals > gs.visitor_goals THEN 1
-                                WHEN t.ID = m.visitor_team_id_fk AND gs.visitor_goals > gs.local_goals THEN 1
-                                ELSE 0
-                            END
-                        ) as char) AS victories,
+                    -- VICTORIES
+                    SUM(
+                        CASE 
+                        WHEN t.ID = m.local_team_id_fk AND gs.local_goals > gs.visitor_goals THEN 1
+                        WHEN t.ID = m.visitor_team_id_fk AND gs.visitor_goals > gs.local_goals THEN 1
+                        ELSE 0
+                        END
+                    ) AS victories,
 
-                        -- DRAWS
-                        CAST(SUM(
-                            CASE 
-                                WHEN gs.local_goals = gs.visitor_goals AND t.ID IN (m.local_team_id_fk, m.visitor_team_id_fk) THEN 1
-                                ELSE 0
-                            END
-                        ) as char) AS draws,
+                    -- DRAWS
+                    SUM(
+                        CASE 
+                        WHEN gs.local_goals = gs.visitor_goals AND t.ID IN (m.local_team_id_fk, m.visitor_team_id_fk) THEN 1
+                        ELSE 0
+                        END
+                    ) AS draws,
 
-                        -- LOSSES
-                        CAST(SUM(
-                            CASE 
-                                WHEN t.ID = m.local_team_id_fk AND gs.local_goals < gs.visitor_goals THEN 1
-                                WHEN t.ID = m.visitor_team_id_fk AND gs.visitor_goals < gs.local_goals THEN 1
-                                ELSE 0
-                            END
-                        ) as char) AS loses,
+                    -- LOSSES
+                    SUM(
+                        CASE 
+                        WHEN t.ID = m.local_team_id_fk AND gs.local_goals < gs.visitor_goals THEN 1
+                        WHEN t.ID = m.visitor_team_id_fk AND gs.visitor_goals < gs.local_goals THEN 1
+                        ELSE 0
+                        END
+                    ) AS loses,
 
-                        -- GOALS SCORED
-                        CAST(SUM(
-                            CASE 
-                                WHEN t.ID = m.local_team_id_fk THEN gs.local_goals
-                                WHEN t.ID = m.visitor_team_id_fk THEN gs.visitor_goals
-                                ELSE 0
-                            END
-                        ) as char) AS goals_favor,
+                    -- GOALS SCORED
+                    SUM(
+                        CASE 
+                        WHEN t.ID = m.local_team_id_fk THEN gs.local_goals
+                        WHEN t.ID = m.visitor_team_id_fk THEN gs.visitor_goals
+                        ELSE 0
+                        END
+                    ) AS goals_favor,
 
-                        -- GOALS AGAINST
-                        CAST(SUM(
-                            CASE 
-                                WHEN t.ID = m.local_team_id_fk THEN gs.visitor_goals
-                                WHEN t.ID = m.visitor_team_id_fk THEN gs.local_goals
-                                ELSE 0
-                            END
-                        ) as char) AS goals_against,
+                    -- GOALS AGAINST
+                    SUM(
+                        CASE 
+                        WHEN t.ID = m.local_team_id_fk THEN gs.visitor_goals
+                        WHEN t.ID = m.visitor_team_id_fk THEN gs.local_goals
+                        ELSE 0
+                        END
+                    ) AS goals_against,
 
-                        -- GOAL DIFFERENCE
-                        CAST(SUM(
-                            CASE 
-                                WHEN t.ID = m.local_team_id_fk THEN gs.local_goals - gs.visitor_goals
-                                WHEN t.ID = m.visitor_team_id_fk THEN gs.visitor_goals - gs.local_goals
-                                ELSE 0
-                            END
-                        ) as char) AS goal_diff,
+                    -- GOAL DIFFERENCE
+                    SUM(
+                        CASE 
+                        WHEN t.ID = m.local_team_id_fk THEN gs.local_goals - gs.visitor_goals
+                        WHEN t.ID = m.visitor_team_id_fk THEN gs.visitor_goals - gs.local_goals
+                        ELSE 0
+                        END
+                    ) AS goal_diff,
 
-                        -- PLAYED MATCHES
-                        CAST(COUNT(*) as char) AS n_played_matches,
+                    -- PLAYED MATCHES: usar DISTINCT para evitar duplicados por joins
+                    COUNT(DISTINCT gs.match_id_fk) AS n_played_matches,
 
-                        -- YELLOW CARDS
-                        CAST(MAX(COALESCE(cs.yellow_cards, 0)) as char) AS yellow_cards,
-
-                        -- RED CARDS
-                        CAST(MAX(COALESCE(cs.red_cards, 0)) as char) AS red_cards
+                    -- YELLOW / RED CARDS por equipo y por liga (agregados con MAX para cumplir ONLY_FULL_GROUP_BY)
+                    COALESCE(MAX(cs.yellow_cards), 0) AS yellow_cards,
+                    COALESCE(MAX(cs.red_cards), 0) AS red_cards
 
                     FROM teams t
                     JOIN matches m ON t.ID IN (m.local_team_id_fk, m.visitor_team_id_fk)
                     JOIN goal_stats gs ON gs.match_id_fk = m.ID
-                    LEFT JOIN card_stats cs ON cs.team_id_fk = t.ID
+                    LEFT JOIN card_stats cs ON cs.team_id_fk = t.ID AND cs.league_id_fk = m.league_id_fk
 
                     WHERE m.played = 1
 
@@ -329,7 +328,7 @@ creation_queries = ["CREATE TABLE teams (ID INT NOT NULL AUTO_INCREMENT, team_na
                     """,
                     """
                     CREATE VIEW user_history AS
-WITH goal_stats AS (
+                    WITH goal_stats AS (
                         SELECT
                             m.ID AS match_id_fk,
                             m.local_team_id_fk,
@@ -362,8 +361,8 @@ WITH goal_stats AS (
                             SUM(CASE WHEN c.type = 'yellow' THEN 1 ELSE 0 END) AS yellow_cards,
                             SUM(CASE WHEN c.type = 'red' THEN 1 ELSE 0 END) AS red_cards
                         FROM cards c
-                        JOIN matches m ON c.match_id_fk = m.ID
-                        JOIN league_participants lp ON c.team_id_fk = lp.team_ID_fk
+                        JOIN matches m ON c.match_id_fk = m.ID AND m.played = 1
+                        JOIN league_participants lp ON c.team_id_fk = lp.team_ID_fk AND lp.league_ID_fk = m.league_id_fk
                         JOIN leagues l ON m.league_id_fk = l.ID
                         WHERE m.played = 1
                         GROUP BY lp.user_ID_fk, l.type
